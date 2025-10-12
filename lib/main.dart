@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: Colors.white,
           shadowColor: Colors.grey[300],
           elevation: 5,
@@ -130,8 +130,8 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString('username', username);
         widget.onLogin(username);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง')));
       }
     } else {
       if (prefs.containsKey('pass_$username')) {
@@ -157,9 +157,7 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Text('Mooda+',
                   style: GoogleFonts.kanit(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: pastelPurple)),
+                      fontSize: 36, fontWeight: FontWeight.bold, color: pastelPurple)),
               SizedBox(height: 24),
               Form(
                 key: _formKey,
@@ -171,8 +169,7 @@ class _LoginPageState extends State<LoginPage> {
                         labelText: 'ชื่อผู้ใช้',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                       ),
                       validator: (v) => v!.isEmpty ? 'กรอกชื่อผู้ใช้' : null,
                     ),
@@ -184,15 +181,12 @@ class _LoginPageState extends State<LoginPage> {
                         labelText: 'รหัสผ่าน',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                       ),
                       validator: (v) => v!.isEmpty ? 'กรอกรหัสผ่าน' : null,
                     ),
                     SizedBox(height: 20),
-                    ElevatedButton(
-                        onPressed: _submit,
-                        child: Text(_isLogin ? 'เข้าสู่ระบบ' : 'สมัคร')),
+                    ElevatedButton(onPressed: _submit, child: Text(_isLogin ? 'เข้าสู่ระบบ' : 'สมัคร')),
                     TextButton(
                         onPressed: () => setState(() => _isLogin = !_isLogin),
                         child: Text(_isLogin ? 'สร้างบัญชีใหม่' : 'เข้าสู่ระบบ')),
@@ -302,14 +296,11 @@ class _HomeScreenState extends State<HomeScreen> {
             lastDay: DateTime.utc(2100, 12, 31),
             focusedDay: _selectedDate,
             selectedDayPredicate: (d) => isSameDay(d, _selectedDate),
-            onDaySelected: (selected, focused) =>
-                setState(() => _selectedDate = selected),
+            onDaySelected: (selected, focused) => setState(() => _selectedDate = selected),
             eventLoader: (d) => _entriesOn(d),
             calendarStyle: CalendarStyle(
-              todayDecoration:
-                  BoxDecoration(color: pastelPink, shape: BoxShape.circle),
-              selectedDecoration:
-                  BoxDecoration(color: pastelPurple, shape: BoxShape.circle),
+              todayDecoration: BoxDecoration(color: pastelPink, shape: BoxShape.circle),
+              selectedDecoration: BoxDecoration(color: pastelPurple, shape: BoxShape.circle),
             ),
             headerStyle: HeaderStyle(
               titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -374,61 +365,98 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 //======================
-// ENTRY MODEL
+// MONTHLY SUMMARY
 //======================
-class Entry {
-  final String dateKey;
-  final String feeling;
-  final String timestamp;
-  final String? note;
-  final String? imagePath;
+class MonthlySummaryPage extends StatelessWidget {
+  final List<Entry> entries;
+  MonthlySummaryPage({required this.entries});
 
-  Entry({
-    required this.dateKey,
-    required this.feeling,
-    required this.timestamp,
-    this.note,
-    this.imagePath,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'dateKey': dateKey,
-        'feeling': feeling,
-        'timestamp': timestamp,
-        'note': note,
-        'imagePath': imagePath,
-      };
-
-  static Entry fromJson(Map<String, dynamic> json) => Entry(
-        dateKey: json['dateKey'],
-        feeling: json['feeling'],
-        timestamp: json['timestamp'],
-        note: json['note'],
-        imagePath: json['imagePath'],
-      );
-
-  Widget toEmojiWidget() {
-    String emoji;
-    switch (feeling) {
-      case 'มีความสุข':
-        emoji = '😊';
-        break;
-      case 'เศร้า':
-        emoji = '😢';
-        break;
-      case 'เฉยๆ':
-        emoji = '😐';
-        break;
-      case 'เบื่อ':
-        emoji = '😒';
-        break;
-      case 'โกรธ':
-        emoji = '😠';
-        break;
-      default:
-        emoji = '🙂';
+  Map<String, int> _countByFeeling(DateTime month) {
+    final map = {'มีความสุข': 0, 'เศร้า': 0, 'เฉยๆ': 0, 'เบื่อ': 0, 'โกรธ': 0};
+    for (var e in entries) {
+      final d = DateTime.parse(e.timestamp);
+      if (d.year == month.year && d.month == month.month) {
+        map[e.feeling] = (map[e.feeling] ?? 0) + 1;
+      }
     }
-    return Text(emoji, style: TextStyle(fontSize: 24));
+    return map;
+  }
+
+  Color _colorForFeeling(String f) {
+    switch (f) {
+      case 'มีความสุข':
+        return Colors.greenAccent;
+      case 'เศร้า':
+        return Colors.blueAccent;
+      case 'เฉยๆ':
+        return Colors.grey;
+      case 'เบื่อ':
+        return Colors.orangeAccent;
+      case 'โกรธ':
+        return Colors.redAccent;
+      default:
+        return Colors.purpleAccent;
+    }
+  }
+
+  String _emojiForFeeling(String f) {
+    switch (f) {
+      case 'มีความสุข':
+        return '😊';
+      case 'เศร้า':
+        return '😢';
+      case 'เฉยๆ':
+        return '😐';
+      case 'เบื่อ':
+        return '😒';
+      case 'โกรธ':
+        return '😠';
+      default:
+        return '🙂';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final data = _countByFeeling(now);
+    final total = data.values.fold<int>(0, (a, b) => a + b);
+
+    return Scaffold(
+      appBar: AppBar(title: Text('สรุปอารมณ์ ${DateFormat('MMMM yyyy', 'th').format(now)}'), backgroundColor: pastelPurple),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: total == 0
+            ? Center(child: Text('ยังไม่มีข้อมูลในเดือนนี้'))
+            : Column(
+                children: [
+                  SizedBox(
+                    height: 200,
+                    child: PieChart(
+                      PieChartData(
+                        sections: data.entries.map((e) {
+                          final percent = (e.value / total) * 100;
+                          return PieChartSectionData(
+                            title: '${e.key}\n${percent.toStringAsFixed(1)}%',
+                            value: e.value.toDouble(),
+                            color: _colorForFeeling(e.key),
+                            radius: 60,
+                            titleStyle: TextStyle(color: Colors.white, fontSize: 12),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  ...data.entries.map((e) => ListTile(
+                        leading: CircleAvatar(backgroundColor: _colorForFeeling(e.key), child: Text(_emojiForFeeling(e.key))),
+                        title: Text('${e.key}'),
+                        trailing: Text('${e.value} ครั้ง'),
+                      )),
+                ],
+              ),
+      ),
+    );
   }
 }
 
@@ -461,92 +489,58 @@ class _FeelingsPageState extends State<FeelingsPage> {
   void initState() {
     super.initState();
     if (widget.existing != null) {
-      final e = widget.existing!;
-      _selectedFeeling = feelings.firstWhere((f) => f['label'] == e.feeling)['key'];
-      _noteCtrl.text = e.note ?? '';
-      if (e.imagePath != null) _imageFile = File(e.imagePath!);
+      _selectedFeeling = widget.existing!.feeling;
+      _noteCtrl.text = widget.existing!.note ?? '';
+      if (widget.existing!.imagePath != null) _imageFile = File(widget.existing!.imagePath!);
     }
   }
 
   Future<void> _pickImage() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _imageFile = File(picked.path));
+    if (picked != null) {
+      setState(() => _imageFile = File(picked.path));
+    }
   }
 
   void _save() {
-    if (_selectedFeeling == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เลือกความรู้สึก')));
-      return;
-    }
-    final entry = Entry(
-      dateKey: DateFormat('yyyy-MM-dd').format(widget.initialDate),
-      feeling: feelings.firstWhere((f) => f['key'] == _selectedFeeling!)['label']!,
-      note: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
+    if (_selectedFeeling == null) return;
+    final e = Entry(
+      feeling: _selectedFeeling!,
+      note: _noteCtrl.text,
       timestamp: DateTime.now().toIso8601String(),
       imagePath: _imageFile?.path,
     );
-    Navigator.pop(context, entry);
+    Navigator.pop(context, e);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:
-          AppBar(title: Text(widget.existing == null ? 'เพิ่มบันทึก' : 'แก้ไขบันทึก'), backgroundColor: pastelPurple),
+      appBar: AppBar(title: Text('บันทึกอารมณ์'), backgroundColor: pastelPurple),
       body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: feelings.map((f) {
-                  return ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _selectedFeeling == f['key'] ? pastelPurple : Colors.grey[300],
-                      foregroundColor: _selectedFeeling == f['key'] ? Colors.white : Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    onPressed: () => setState(() => _selectedFeeling = f['key']),
-                    child: Text(f['label']!),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: _noteCtrl,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                  hintText: 'เขียนโน้ต...',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-              ),
-              SizedBox(height: 16),
-              if (_imageFile != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.file(_imageFile!, height: 150, fit: BoxFit.cover),
-                ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: Icon(Icons.image),
-                    label: Text('เลือกรูปจากแกลเลอรี'),
-                  ),
-                  Spacer(),
-                  ElevatedButton(onPressed: _save, child: Text('บันทึก')),
-                ],
-              ),
-            ],
-          ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Wrap(
+              spacing: 12,
+              children: feelings.map((f) {
+                final selected = _selectedFeeling == f['label'];
+                return ChoiceChip(
+                  label: Text(f['label']!),
+                  selected: selected,
+                  onSelected: (_) => setState(() => _selectedFeeling = f['label']),
+                  selectedColor: pastelPink,
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 12),
+            TextField(controller: _noteCtrl, decoration: InputDecoration(labelText: 'โน้ต')),
+            SizedBox(height: 12),
+            if (_imageFile != null) Image.file(_imageFile!, height: 150),
+            ElevatedButton.icon(onPressed: _pickImage, icon: Icon(Icons.image), label: Text('เลือกภาพ')),
+            Spacer(),
+            ElevatedButton(onPressed: _save, child: Text('บันทึก'))
+          ],
         ),
       ),
     );
@@ -554,22 +548,41 @@ class _FeelingsPageState extends State<FeelingsPage> {
 }
 
 //======================
-// MONTHLY SUMMARY
+// ENTRY MODEL
 //======================
-class MonthlySummaryPage extends StatelessWidget {
-  final List<Entry> entries;
-  MonthlySummaryPage({required this.entries});
+class Entry {
+  final String feeling;
+  final String? note;
+  final String timestamp;
+  final String? imagePath;
 
-  Map<String, int> _countByFeeling(DateTime month) {
-    final map = {'มีความสุข': 0, 'เศร้า': 0, 'เฉยๆ': 0, 'เบื่อ': 0, 'โกรธ': 0};
-    for (var e in entries) {
-      final d = DateTime.parse(e.timestamp);
-      if (d.year == month.year && d.month == month.month) {
-        map[e.feeling] = (map[e.feeling] ?? 0) + 1;
-      }
+  Entry({required this.feeling, this.note, required this.timestamp, this.imagePath});
+
+  String get dateKey => timestamp.substring(0, 10);
+
+  Map<String, dynamic> toJson() =>
+      {'feeling': feeling, 'note': note, 'timestamp': timestamp, 'imagePath': imagePath};
+
+  factory Entry.fromJson(Map<String, dynamic> json) => Entry(
+      feeling: json['feeling'],
+      note: json['note'],
+      timestamp: json['timestamp'],
+      imagePath: json['imagePath']);
+
+  Widget toEmojiWidget() {
+    switch (feeling) {
+      case 'มีความสุข':
+        return Text('😊');
+      case 'เศร้า':
+        return Text('😢');
+      case 'เฉยๆ':
+        return Text('😐');
+      case 'เบื่อ':
+        return Text('😒');
+      case 'โกรธ':
+        return Text('😠');
+      default:
+        return Text('🙂');
     }
-    return map;
   }
-
-  Color _colorForFeeling(String f)
 }
